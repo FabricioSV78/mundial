@@ -151,16 +151,33 @@ async function recalculatePlayerTournamentStats(teamIds: string[]) {
   for (const player of players) {
     const goalCount = events.filter((event) => event.playerId === player.id && event.eventType === "GOAL").length;
     const redCardCount = events.filter((event) => event.playerId === player.id && event.eventType === "RED_CARD").length;
+    const cleanSheetCount = matches.filter((match) => {
+      if (player.position !== "GK" || match.status !== "FINISHED" || match.homeScore === null || match.awayScore === null) {
+        return false;
+      }
+
+      if (player.teamId === match.homeTeamId) {
+        return match.awayScore === 0;
+      }
+
+      if (player.teamId === match.awayTeamId) {
+        return match.homeScore === 0;
+      }
+
+      return false;
+    }).length;
     const teamWins = teamWinCounts.get(player.teamId) ?? 0;
     const points =
       goalCount * fantasyScoringRules.goal +
       teamWins * fantasyScoringRules.teamWin +
+      cleanSheetCount * fantasyScoringRules.cleanSheet +
       redCardCount * fantasyScoringRules.redCard;
 
     await prisma.player.update({
       where: { id: player.id },
       data: {
         goals: goalCount,
+        cleanSheets: cleanSheetCount,
         redCards: redCardCount,
         points,
       },

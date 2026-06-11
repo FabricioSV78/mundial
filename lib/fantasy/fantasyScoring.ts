@@ -5,14 +5,20 @@ export const fantasyScoringRules = {
   goal: 3,
   teamWin: 2,
   redCard: -3,
+  cleanSheet: 4,
 } as const;
 
-export function calculateFantasyPoints(player: Pick<Player, "stats">, options?: { teamWon?: boolean; teamWins?: number }) {
+export function calculateFantasyPoints(
+  player: Pick<Player, "stats"> & Partial<Pick<Player, "position">>,
+  options?: { teamWon?: boolean; teamWins?: number },
+) {
   const teamWins = options?.teamWins ?? (options?.teamWon ? 1 : 0);
+  const cleanSheets = player.position === "GK" ? player.stats.cleanSheets : 0;
 
   return (
     player.stats.goals * fantasyScoringRules.goal +
     teamWins * fantasyScoringRules.teamWin +
+    cleanSheets * fantasyScoringRules.cleanSheet +
     player.stats.redCards * fantasyScoringRules.redCard
   );
 }
@@ -59,6 +65,7 @@ type FantasySelection = {
   playerId: string;
   playerName: string;
   teamId: string;
+  position?: string;
 };
 
 type FantasyPointLogDraft = {
@@ -66,7 +73,7 @@ type FantasyPointLogDraft = {
   fantasyTeamId: string;
   playerId: string;
   matchId: string;
-  sourceType: "GOAL" | "TEAM_WIN" | "RED_CARD";
+  sourceType: "GOAL" | "TEAM_WIN" | "RED_CARD" | "PENALTY_SAVE" | "CLEAN_SHEET";
   sourceEventId?: string;
   sourceKey: string;
   points: number;
@@ -84,6 +91,22 @@ function resolveWinnerTeamId(match: FantasyMatchContext) {
   }
 
   return match.homeScore > match.awayScore ? match.homeTeamId : match.awayTeamId;
+}
+
+function teamFinishedWithCleanSheet(match: FantasyMatchContext, teamId: string) {
+  if (match.status !== "FINISHED" || match.homeScore === null || match.awayScore === null) {
+    return false;
+  }
+
+  if (teamId === match.homeTeamId) {
+    return match.awayScore === 0;
+  }
+
+  if (teamId === match.awayTeamId) {
+    return match.homeScore === 0;
+  }
+
+  return false;
 }
 
 export function buildFantasyPointEntriesForMatch(
@@ -142,6 +165,19 @@ export function buildFantasyPointEntriesForMatch(
         sourceKey: `${match.id}:${selection.playerId}:RED_CARD:${event.id}`,
         points: fantasyScoringRules.redCard,
         description: `${selection.playerName} recibio tarjeta roja al ${event.minute ?? "?"}.`,
+      });
+    }
+
+    if (selection.position === "GK" && teamFinishedWithCleanSheet(match, selection.teamId)) {
+      entries.push({
+        userId: selection.userId,
+        fantasyTeamId: selection.fantasyTeamId,
+        playerId: selection.playerId,
+        matchId: match.id,
+        sourceType: "CLEAN_SHEET",
+        sourceKey: `${match.id}:${selection.playerId}:CLEAN_SHEET`,
+        points: fantasyScoringRules.cleanSheet,
+        description: `${selection.playerName} dejo su arco en cero.`,
       });
     }
   }
@@ -203,6 +239,7 @@ export async function calculateFantasyPointsForMatch(matchId: string) {
         playerId: slot.playerId,
         playerName: slot.player.name,
         teamId: slot.player.teamId,
+        position: slot.player.position,
       })),
     ),
   );

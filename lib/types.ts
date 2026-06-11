@@ -8,8 +8,15 @@ export type MatchStatus =
 export type Position = "GK" | "DEF" | "MID" | "FWD";
 export type Formation = "4-3-3" | "4-4-2" | "3-5-2" | "4-2-3-1";
 export type ExternalProvider = "THESPORTSDB" | "MANUAL";
-export type MatchEventType = "GOAL" | "RED_CARD" | "YELLOW_CARD" | "ASSIST" | "SUBSTITUTION" | "UNKNOWN";
-export type FantasyPointSourceType = "GOAL" | "TEAM_WIN" | "RED_CARD";
+export type MatchEventType =
+  | "GOAL"
+  | "RED_CARD"
+  | "YELLOW_CARD"
+  | "ASSIST"
+  | "SUBSTITUTION"
+  | "PENALTY_SAVE"
+  | "UNKNOWN";
+export type FantasyPointSourceType = "GOAL" | "TEAM_WIN" | "RED_CARD" | "PENALTY_SAVE" | "CLEAN_SHEET";
 export type QualifiedStatus =
   | "PENDING"
   | "PROJECTED_DIRECT"

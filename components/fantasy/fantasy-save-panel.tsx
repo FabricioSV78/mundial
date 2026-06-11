@@ -1,7 +1,7 @@
 "use client";
 
 import confetti from "canvas-confetti";
-import { AlertTriangle, Goal, Lock, Save, ShieldAlert, Trophy } from "lucide-react";
+import { AlertTriangle, Goal, Lock, Save, ShieldAlert, ShieldCheck, Trophy } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,11 +100,20 @@ export function FantasySavePanel({
           <Goal className="size-4" />
           Reglas de puntuacion
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
           <div className="rounded-[10px] border border-white/10 bg-slate-950/30 p-3">
             <p className="text-xs font-black uppercase tracking-[0.12em] text-white/45">Ataque</p>
             <p className="mt-2 text-sm font-semibold text-white">
               Gol de un chocolatero de tus 11: {formatRulePoints(fantasyScoringRules.goal)}
+            </p>
+          </div>
+          <div className="rounded-[10px] border border-white/10 bg-slate-950/30 p-3">
+            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-white/45">
+              <ShieldCheck className="size-3.5" />
+              Arquero
+            </p>
+            <p className="mt-2 text-sm font-semibold text-white">
+              Arco en cero del equipo de tu arquero: {formatRulePoints(fantasyScoringRules.cleanSheet)}
             </p>
           </div>
           <div className="rounded-[10px] border border-white/10 bg-slate-950/30 p-3">

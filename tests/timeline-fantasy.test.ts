@@ -154,6 +154,29 @@ test("calcula puntos fantasy por gol, victoria y roja sin duplicar al recalcular
   assert.equal(mbappeLogs.length, 0);
 });
 
+test("suma cuatro puntos al arquero si su equipo termina con arco en cero", () => {
+  const result = buildFantasyPointEntriesForMatch(
+    {
+      id: "m1",
+      status: "FINISHED",
+      homeTeamId: "arg",
+      awayTeamId: "fra",
+      homeScore: 1,
+      awayScore: 0,
+    },
+    [],
+    [
+      { userId: "u1", fantasyTeamId: "ft1", playerId: "gk1", playerName: "Emiliano Martinez", teamId: "arg", position: "GK" },
+      { userId: "u2", fantasyTeamId: "ft2", playerId: "gk1", playerName: "Emiliano Martinez", teamId: "arg", position: "DEF" },
+    ],
+  );
+
+  const cleanSheetLogs = result.filter((entry) => entry.sourceType === "CLEAN_SHEET");
+
+  assert.equal(cleanSheetLogs.length, 1);
+  assert.equal(cleanSheetLogs[0].points, 4);
+});
+
 test("resume goleadores del partido correctamente", () => {
   const scorers = summarizeScorers([
     { playerName: "Lionel Messi", teamName: "Argentina", minute: 12 },

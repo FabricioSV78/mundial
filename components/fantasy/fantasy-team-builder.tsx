@@ -1,6 +1,6 @@
 "use client";
 
-import { GripVertical, Lock, RotateCcw, X } from "lucide-react";
+import { GripVertical, Lock, RotateCcw, Trophy, X } from "lucide-react";
 import type { DragEvent } from "react";
 import { useMemo, useState } from "react";
 import { FantasySavePanel } from "@/components/fantasy/fantasy-save-panel";
@@ -132,6 +132,7 @@ export function FantasyTeamBuilder({
         .map((player) => applyFantasyBreakdown(player, fantasyBreakdowns)),
     [fantasyBreakdowns, playersById, selectedPlayerIds],
   );
+  const selectedFantasyPoints = selectedPlayers.reduce((total, player) => total + player.points, 0);
   const availablePlayers = useMemo(
     () => players.map((player) => applyFantasyBreakdown(player, fantasyBreakdowns)),
     [fantasyBreakdowns, players],
@@ -265,6 +266,11 @@ export function FantasyTeamBuilder({
               <p className="mt-1 text-xs font-semibold text-white/55">{notice}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <div className="flex h-10 items-center gap-2 rounded-[8px] border border-amber-200/25 bg-amber-300/10 px-3 text-amber-50">
+                <Trophy className="size-4 text-amber-200" />
+                <span className="text-xs font-black uppercase">Total</span>
+                <span className="text-sm font-black">{selectedFantasyPoints} pts</span>
+              </div>
               <Select
                 value={formation}
                 disabled={locked}

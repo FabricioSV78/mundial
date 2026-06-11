@@ -200,7 +200,10 @@ export async function getPlayersFromDb(): Promise<Player[]> {
       countryCode: player.team.shortName ?? player.team.code,
       position: player.position,
       price: player.price,
-      points: calculateFantasyPoints({ stats: toPlayerStats(player) }, { teamWins: teamWinCounts.get(player.teamId) ?? 0 }),
+      points: calculateFantasyPoints(
+        { stats: toPlayerStats(player), position: player.position },
+        { teamWins: teamWinCounts.get(player.teamId) ?? 0 },
+      ),
       avatar: player.avatar,
       photoUrl: player.photoUrl ?? undefined,
       stats: toPlayerStats(player),

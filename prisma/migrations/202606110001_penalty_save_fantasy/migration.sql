@@ -1,0 +1,2 @@
+ALTER TYPE "MatchEventType" ADD VALUE 'PENALTY_SAVE';
+ALTER TYPE "FantasyPointSourceType" ADD VALUE 'PENALTY_SAVE';

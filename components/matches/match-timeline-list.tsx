@@ -8,6 +8,7 @@ const eventIcon = {
   YELLOW_CARD: CircleAlert,
   ASSIST: Goal,
   SUBSTITUTION: CircleAlert,
+  PENALTY_SAVE: CircleAlert,
   UNKNOWN: CircleAlert,
 } as const;
 
@@ -17,6 +18,7 @@ const eventTone = {
   YELLOW_CARD: "gold",
   ASSIST: "blue",
   SUBSTITUTION: "slate",
+  PENALTY_SAVE: "green",
   UNKNOWN: "slate",
 } as const;
 

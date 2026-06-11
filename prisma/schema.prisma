@@ -34,6 +34,7 @@ enum MatchEventType {
   YELLOW_CARD
   ASSIST
   SUBSTITUTION
+  PENALTY_SAVE
   UNKNOWN
 }
 
@@ -41,6 +42,8 @@ enum FantasyPointSourceType {
   GOAL
   TEAM_WIN
   RED_CARD
+  PENALTY_SAVE
+  CLEAN_SHEET
 }
 
 model User {
