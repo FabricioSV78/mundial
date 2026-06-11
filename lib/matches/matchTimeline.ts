@@ -288,7 +288,7 @@ async function recalculatePredictionsForStoredMatch(match: {
   id: string;
   homeScore: number | null;
   awayScore: number | null;
-  scorer: string | null;
+  scorers: string[];
   status: string;
 }) {
   if (match.status !== "FINISHED" || match.homeScore === null || match.awayScore === null) {
@@ -309,7 +309,7 @@ async function recalculatePredictionsForStoredMatch(match: {
             actualAway: match.awayScore!,
             predictedHome: prediction.homeGoals,
             predictedAway: prediction.awayGoals,
-            actualScorer: match.scorer,
+            actualScorers: match.scorers,
             predictedScorer: prediction.scorer,
           }),
         },
@@ -438,7 +438,7 @@ export async function syncMatchTimeline(matchId: string) {
     id: match.id,
     homeScore: match.homeScore,
     awayScore: match.awayScore,
-    scorer: headlineScorer?.playerName ?? null,
+    scorers: scorers.map((scorer) => scorer.playerName),
     status: match.status,
   });
   await recalculatePlayerTournamentStats([match.homeTeamId, match.awayTeamId]);

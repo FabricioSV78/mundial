@@ -8,7 +8,7 @@ import {
   isPredictionLocked,
   resolvePredictionStage,
 } from "../lib/predictions";
-import { calculateFantasyPoints, calculatePredictionPoints } from "../lib/scoring";
+import { calculateFantasyPoints, calculatePredictionPoints, calculatePredictionPointsFromScores } from "../lib/scoring";
 import type { Match, Player } from "../lib/types";
 
 const match: Match = {
@@ -53,6 +53,20 @@ test("compara goleador ignorando mayusculas, tildes y espacios", () => {
       scorer: "  messí  ",
     }),
     7,
+  );
+});
+
+test("da puntos de goleador si el pronosticado esta entre cualquier goleador real", () => {
+  assert.equal(
+    calculatePredictionPointsFromScores({
+      actualHome: 2,
+      actualAway: 0,
+      predictedHome: 2,
+      predictedAway: 1,
+      actualScorers: ["Julián Quiñones", "Raúl Jiménez"],
+      predictedScorer: "Raul Jimenez",
+    }),
+    5,
   );
 });
 

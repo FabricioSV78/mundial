@@ -143,6 +143,11 @@ async function recalculatePredictions(matchId: string, match: NormalizedMatch) {
   const predictions = await prisma.prediction.findMany({
     where: { matchId },
   });
+  const goals = await prisma.matchEvent.findMany({
+    where: { matchId, eventType: "GOAL" },
+    select: { playerName: true },
+  });
+  const actualScorers = goals.map((goal) => goal.playerName).filter((playerName): playerName is string => Boolean(playerName));
 
   await Promise.all(
     predictions.map((prediction) =>
@@ -154,7 +159,7 @@ async function recalculatePredictions(matchId: string, match: NormalizedMatch) {
             actualAway: match.awayScore!,
             predictedHome: prediction.homeGoals,
             predictedAway: prediction.awayGoals,
-            actualScorer: null,
+            actualScorers,
             predictedScorer: prediction.scorer,
           }),
         },
@@ -216,7 +221,10 @@ async function upsertMatch(match: NormalizedMatch) {
 
 export async function syncWorldCupFromTheSportsDb(options?: { includeTimeline?: boolean }): Promise<SyncResult> {
   const startedAt = new Date();
-  const [events, tableRows] = await Promise.all([fetchWorldCupEvents(), fetchWorldCupTable()]);
+  const [events, tableRows] = await Promise.all([
+    fetchWorldCupEvents({ noStore: true }),
+    fetchWorldCupTable({ noStore: true }),
+  ]);
   const groupByTeamName = new Map(
     tableRows
       .filter((row) => row.strTeam && row.strGroup)

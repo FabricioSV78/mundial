@@ -35,6 +35,7 @@ export function calculatePredictionPointsFromScores({
   predictedHome,
   predictedAway,
   actualScorer,
+  actualScorers,
   predictedScorer,
 }: {
   actualHome: number;
@@ -42,13 +43,15 @@ export function calculatePredictionPointsFromScores({
   predictedHome: number;
   predictedAway: number;
   actualScorer?: string | null;
+  actualScorers?: Array<string | null | undefined>;
   predictedScorer?: string | null;
 }) {
   const actualWinner = getWinner(actualHome, actualAway);
   const predictedWinner = getWinner(predictedHome, predictedAway);
   const exact = actualHome === predictedHome && actualAway === predictedAway;
   const goalDifference = actualHome - actualAway === predictedHome - predictedAway;
-  const scorer = isSameComparableName(actualScorer, predictedScorer);
+  const scorers = actualScorers?.length ? actualScorers : [actualScorer];
+  const scorer = scorers.some((scorerName) => isSameComparableName(scorerName, predictedScorer));
 
   if (exact) {
     return 5 + (scorer ? 2 : 0);

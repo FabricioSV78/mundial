@@ -300,11 +300,11 @@ export function normalizeTimelineEvent(rawEvent: TheSportsDbTimelineEvent) {
   };
 }
 
-export async function fetchWorldCupEvents() {
+export async function fetchWorldCupEvents(options?: { noStore?: boolean }) {
   const url = `${getBaseUrl()}/eventsseason.php?id=${encodeURIComponent(
     getLeagueId(),
   )}&s=${encodeURIComponent(getSeason())}`;
-  const data = await getJson<EventsSeasonResponse>(url);
+  const data = await getJson<EventsSeasonResponse>(url, { noStore: options?.noStore });
   const events = data?.events ?? data?.event ?? [];
 
   return Array.isArray(events) ? events : [];
@@ -355,11 +355,12 @@ export async function fetchPlayersByTeamId(teamId: string) {
   return Array.isArray(data?.player) ? data.player : [];
 }
 
-export async function fetchWorldCupTable() {
+export async function fetchWorldCupTable(options?: { noStore?: boolean }) {
   const data = await getJson<LeagueTableResponse>(
     `${getBaseUrl()}/lookuptable.php?l=${encodeURIComponent(getLeagueId())}&s=${encodeURIComponent(
       getSeason(),
     )}`,
+    { noStore: options?.noStore },
   );
 
   return Array.isArray(data?.table) ? data.table : [];
