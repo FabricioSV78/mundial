@@ -23,6 +23,8 @@ export function announceIntroStarted() {
 
 export function AppSoundtrack() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const introAutoplayRequestedRef = useRef(false);
+  const introRetryTimersRef = useRef<number[]>([]);
   const [state, setState] = useState<SoundtrackState>("idle");
   const [muted, setMuted] = useState(false);
 
@@ -97,25 +99,20 @@ export function AppSoundtrack() {
 
   useEffect(() => {
     function handleIntroStart() {
-      void playSoundtrack({ forceUnmuted: true, restartFromStart: true });
+      introAutoplayRequestedRef.current = true;
+      introRetryTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      introRetryTimersRef.current = AUTOPLAY_RETRY_DELAYS.map((delay) =>
+        window.setTimeout(() => {
+          void playSoundtrack({ forceUnmuted: true, restartFromStart: delay === 0 });
+        }, delay),
+      );
     }
 
     window.addEventListener(INTRO_START_EVENT, handleIntroStart);
 
     return () => {
+      introRetryTimersRef.current.forEach((timer) => window.clearTimeout(timer));
       window.removeEventListener(INTRO_START_EVENT, handleIntroStart);
-    };
-  }, [playSoundtrack]);
-
-  useEffect(() => {
-    const timers = AUTOPLAY_RETRY_DELAYS.map((delay) =>
-      window.setTimeout(() => {
-        void playSoundtrack();
-      }, delay),
-    );
-
-    return () => {
-      timers.forEach((timer) => window.clearTimeout(timer));
     };
   }, [playSoundtrack]);
 
@@ -125,7 +122,9 @@ export function AppSoundtrack() {
         window.removeEventListener(eventName, handleUserActivation, true);
       });
 
-      void playSoundtrack();
+      if (introAutoplayRequestedRef.current && state === "blocked") {
+        void playSoundtrack({ forceUnmuted: true });
+      }
     }
 
     AUTOPLAY_UNLOCK_EVENTS.forEach((eventName) => {
@@ -137,7 +136,40 @@ export function AppSoundtrack() {
         window.removeEventListener(eventName, handleUserActivation, true);
       });
     };
-  }, [playSoundtrack]);
+  }, [playSoundtrack, state]);
+
+  useEffect(() => {
+    function handleStorageChange(event: StorageEvent) {
+      if (event.key !== SOUNDTRACK_MUTED_KEY) {
+        return;
+      }
+
+      const audio = audioRef.current;
+      const nextMuted = event.newValue === "1";
+
+      setMuted(nextMuted);
+
+      if (!audio) {
+        return;
+      }
+
+      audio.muted = nextMuted;
+
+      if (nextMuted) {
+        audio.pause();
+        setState("paused");
+        return;
+      }
+
+      setState(audio.paused ? "paused" : "playing");
+    }
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -146,11 +178,17 @@ export function AppSoundtrack() {
       return;
     }
 
+    let resumeFrame: number | undefined;
+
     restoreAudioState();
 
     if (audio.muted) {
       audio.pause();
       setState("paused");
+    } else if (window.localStorage.getItem(SOUNDTRACK_ENABLED_KEY) === "1") {
+      resumeFrame = window.requestAnimationFrame(() => {
+        void playSoundtrack();
+      });
     }
 
     function handleTimeUpdate() {
@@ -177,13 +215,17 @@ export function AppSoundtrack() {
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
+      if (resumeFrame) {
+        window.cancelAnimationFrame(resumeFrame);
+      }
+
       persistAudioState();
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("pause", handleTimeUpdate);
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [persistAudioState, restoreAudioState]);
+  }, [persistAudioState, playSoundtrack, restoreAudioState]);
 
   function toggleSound() {
     const audio = audioRef.current;
@@ -203,6 +245,7 @@ export function AppSoundtrack() {
     audio.muted = true;
     audio.pause();
     persistAudioState();
+    window.localStorage.setItem(SOUNDTRACK_ENABLED_KEY, "0");
     window.localStorage.setItem(SOUNDTRACK_MUTED_KEY, "1");
     setMuted(true);
     setState("paused");
@@ -215,14 +258,17 @@ export function AppSoundtrack() {
         src="/imagenesMundial/musica.mp3"
         preload="auto"
         loop
-        autoPlay
-        onCanPlay={() => void playSoundtrack()}
+        onCanPlay={() => {
+          if (introAutoplayRequestedRef.current) {
+            void playSoundtrack({ forceUnmuted: true });
+          }
+        }}
         onPlay={() => setState("playing")}
       />
       {state !== "idle" ? (
         <button type="button" className="app-soundtrack-toggle" onClick={toggleSound}>
-          {state === "blocked" ? <Music className="size-4" /> : muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-          {state === "blocked" ? "Activar musica" : muted ? "Activar sonido" : "Silenciar"}
+          {state === "blocked" ? <Music className="size-4" /> : muted || state === "paused" ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+          {state === "blocked" ? "Activar musica" : muted || state === "paused" ? "Activar sonido" : "Silenciar"}
         </button>
       ) : null}
     </>
