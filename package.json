@@ -2,6 +2,11 @@
   "name": "mundial-battle",
   "version": "0.1.0",
   "private": true,
+
+  "engines": {
+  "node": ">=20.9.0"
+  }, 
+  
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,6 +19,8 @@
     "seed": "tsx prisma/seed.ts",
     "test": "node --import tsx --test tests/*.test.ts"
   },
+
+  
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^6.19.3",
