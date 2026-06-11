@@ -4,7 +4,7 @@ import type { FantasyPointEntry, MatchEventItem, Player } from "@/lib/types";
 export const fantasyScoringRules = {
   goal: 3,
   teamWin: 2,
-  redCard: 3,
+  redCard: -3,
 } as const;
 
 export function calculateFantasyPoints(player: Pick<Player, "stats">, options?: { teamWon?: boolean; teamWins?: number }) {

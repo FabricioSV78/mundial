@@ -88,8 +88,8 @@ test("calcula puntos fantasy con gol, victoria y roja", () => {
     },
   };
 
-  assert.equal(calculateFantasyPoints(player, { teamWon: true }), 8);
-  assert.equal(calculateFantasyPoints(player, { teamWins: 2 }), 10);
+  assert.equal(calculateFantasyPoints(player, { teamWon: true }), 2);
+  assert.equal(calculateFantasyPoints(player, { teamWins: 2 }), 4);
 });
 
 test("arma opciones de goleador solo con jugadores del partido", () => {

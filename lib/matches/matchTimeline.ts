@@ -1,5 +1,5 @@
 import { fetchEventTimeline } from "@/lib/integrations/theSportsDb";
-import { calculateFantasyPointsForMatch } from "@/lib/fantasy/fantasyScoring";
+import { calculateFantasyPointsForMatch, fantasyScoringRules } from "@/lib/fantasy/fantasyScoring";
 import { prisma } from "@/lib/prisma";
 import { isMissingTableError } from "@/lib/prismaErrors";
 import { recalculateUserLeaguePoints } from "@/lib/rankings";
@@ -152,7 +152,10 @@ async function recalculatePlayerTournamentStats(teamIds: string[]) {
     const goalCount = events.filter((event) => event.playerId === player.id && event.eventType === "GOAL").length;
     const redCardCount = events.filter((event) => event.playerId === player.id && event.eventType === "RED_CARD").length;
     const teamWins = teamWinCounts.get(player.teamId) ?? 0;
-    const points = goalCount * 3 + teamWins * 2 + redCardCount * 3;
+    const points =
+      goalCount * fantasyScoringRules.goal +
+      teamWins * fantasyScoringRules.teamWin +
+      redCardCount * fantasyScoringRules.redCard;
 
     await prisma.player.update({
       where: { id: player.id },

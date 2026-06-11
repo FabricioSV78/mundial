@@ -149,7 +149,7 @@ test("calcula puntos fantasy por gol, victoria y roja sin duplicar al recalcular
   const julianLogs = resultA.filter((entry) => entry.playerId === "p2");
   const mbappeLogs = resultA.filter((entry) => entry.playerId === "p3");
 
-  assert.equal(messiLogs.reduce((total, entry) => total + entry.points, 0), 8);
+  assert.equal(messiLogs.reduce((total, entry) => total + entry.points, 0), 2);
   assert.equal(julianLogs.reduce((total, entry) => total + entry.points, 0), 2);
   assert.equal(mbappeLogs.length, 0);
 });

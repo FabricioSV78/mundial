@@ -10,6 +10,10 @@ import { validateFantasyTeam } from "@/lib/fantasyRules";
 import { fantasyScoringRules } from "@/lib/scoring";
 import type { Formation, Player } from "@/lib/types";
 
+function formatRulePoints(points: number) {
+  return points > 0 ? `+${points}` : `${points}`;
+}
+
 export function FantasySavePanel({
   players,
   formation,
@@ -99,21 +103,27 @@ export function FantasySavePanel({
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-[10px] border border-white/10 bg-slate-950/30 p-3">
             <p className="text-xs font-black uppercase tracking-[0.12em] text-white/45">Ataque</p>
-            <p className="mt-2 text-sm font-semibold text-white">Gol de un chocolatero de tus 11: +{fantasyScoringRules.goal}</p>
+            <p className="mt-2 text-sm font-semibold text-white">
+              Gol de un chocolatero de tus 11: {formatRulePoints(fantasyScoringRules.goal)}
+            </p>
           </div>
           <div className="rounded-[10px] border border-white/10 bg-slate-950/30 p-3">
             <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-white/45">
               <Trophy className="size-3.5" />
               Resultado
             </p>
-            <p className="mt-2 text-sm font-semibold text-white">Si el equipo del jugador gana: +{fantasyScoringRules.teamWin}</p>
+            <p className="mt-2 text-sm font-semibold text-white">
+              Si el equipo del jugador gana: {formatRulePoints(fantasyScoringRules.teamWin)}
+            </p>
           </div>
           <div className="rounded-[10px] border border-white/10 bg-slate-950/30 p-3">
             <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-white/45">
               <ShieldAlert className="size-3.5" />
               Tarjetas
             </p>
-            <p className="mt-2 text-sm font-semibold text-white">Si ve roja: +{fantasyScoringRules.redCard}</p>
+            <p className="mt-2 text-sm font-semibold text-white">
+              Si ve roja: {formatRulePoints(fantasyScoringRules.redCard)}
+            </p>
           </div>
         </div>
       </GlassCard>
