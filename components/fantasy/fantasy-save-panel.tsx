@@ -131,7 +131,7 @@ export function FantasySavePanel({
               Tarjetas
             </p>
             <p className="mt-2 text-sm font-semibold text-white">
-              Si ve roja: {formatRulePoints(fantasyScoringRules.redCard)}
+              Amarilla: {formatRulePoints(fantasyScoringRules.yellowCard)} · Roja: {formatRulePoints(fantasyScoringRules.redCard)}
             </p>
           </div>
         </div>

@@ -16,7 +16,7 @@ export type MatchEventType =
   | "SUBSTITUTION"
   | "PENALTY_SAVE"
   | "UNKNOWN";
-export type FantasyPointSourceType = "GOAL" | "TEAM_WIN" | "RED_CARD" | "PENALTY_SAVE" | "CLEAN_SHEET";
+export type FantasyPointSourceType = "GOAL" | "TEAM_WIN" | "YELLOW_CARD" | "RED_CARD" | "PENALTY_SAVE" | "CLEAN_SHEET";
 export type QualifiedStatus =
   | "PENDING"
   | "PROJECTED_DIRECT"

@@ -67,7 +67,7 @@ test("bloquea pronosticos despues del inicio", () => {
   );
 });
 
-test("calcula puntos fantasy con gol, victoria y roja", () => {
+test("calcula puntos fantasy con gol, victoria, amarilla y roja", () => {
   const player: Player = {
     id: "p1",
     name: "Jugador 1",
@@ -88,8 +88,8 @@ test("calcula puntos fantasy con gol, victoria y roja", () => {
     },
   };
 
-  assert.equal(calculateFantasyPoints(player, { teamWon: true }), 2);
-  assert.equal(calculateFantasyPoints(player, { teamWins: 2 }), 4);
+  assert.equal(calculateFantasyPoints(player, { teamWon: true }), 1);
+  assert.equal(calculateFantasyPoints(player, { teamWins: 2 }), 3);
 });
 
 test("arma opciones de goleador solo con jugadores del partido", () => {

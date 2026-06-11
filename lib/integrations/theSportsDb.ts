@@ -239,8 +239,13 @@ async function getJson<T>(url: string, options?: { noStore?: boolean }): Promise
   }
 }
 
-function normalizeEventType(value?: string | null): MatchEventType {
-  const normalized = (value ?? "").toLowerCase().replace(/[_-]+/g, " ").trim();
+function normalizeEventType(...values: Array<string | null | undefined>): MatchEventType {
+  const normalized = values
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .trim();
 
   if (normalized.includes("goal")) {
     return "GOAL";
@@ -267,7 +272,11 @@ function normalizeEventType(value?: string | null): MatchEventType {
 
 export function normalizeTimelineEvent(rawEvent: TheSportsDbTimelineEvent) {
   const eventType = normalizeEventType(
-    rawEvent.strTimeline ?? rawEvent.strTimelineDetail ?? rawEvent.strEvent ?? rawEvent.strEventType ?? rawEvent.strType,
+    rawEvent.strTimelineDetail,
+    rawEvent.strEventType,
+    rawEvent.strType,
+    rawEvent.strTimeline,
+    rawEvent.strEvent,
   );
   const minute = parseMinute(rawEvent.intTime ?? rawEvent.strTime);
   const playerName =

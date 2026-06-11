@@ -150,6 +150,7 @@ async function recalculatePlayerTournamentStats(teamIds: string[]) {
 
   for (const player of players) {
     const goalCount = events.filter((event) => event.playerId === player.id && event.eventType === "GOAL").length;
+    const yellowCardCount = events.filter((event) => event.playerId === player.id && event.eventType === "YELLOW_CARD").length;
     const redCardCount = events.filter((event) => event.playerId === player.id && event.eventType === "RED_CARD").length;
     const cleanSheetCount = matches.filter((match) => {
       if (player.position !== "GK" || match.status !== "FINISHED" || match.homeScore === null || match.awayScore === null) {
@@ -171,6 +172,7 @@ async function recalculatePlayerTournamentStats(teamIds: string[]) {
       goalCount * fantasyScoringRules.goal +
       teamWins * fantasyScoringRules.teamWin +
       cleanSheetCount * fantasyScoringRules.cleanSheet +
+      yellowCardCount * fantasyScoringRules.yellowCard +
       redCardCount * fantasyScoringRules.redCard;
 
     await prisma.player.update({
@@ -178,6 +180,7 @@ async function recalculatePlayerTournamentStats(teamIds: string[]) {
       data: {
         goals: goalCount,
         cleanSheets: cleanSheetCount,
+        yellowCards: yellowCardCount,
         redCards: redCardCount,
         points,
       },
@@ -349,15 +352,22 @@ export async function syncMatchTimeline(matchId: string) {
   }
 
   const timeline = await fetchEventTimeline(match.externalId);
+  const dedupedTimeline = new Map<string, (typeof timeline)[number]>();
+
+  for (const rawEvent of timeline) {
+    const externalId = buildStableTimelineExternalId(match.externalId, rawEvent);
+    dedupedTimeline.set(externalId, rawEvent);
+  }
+
+  const incomingExternalIds = [...dedupedTimeline.keys()];
   let stored = 0;
   let goals = 0;
   let redCards = 0;
   let unlinkedPlayers = 0;
 
-  for (const rawEvent of timeline) {
+  for (const [externalId, rawEvent] of dedupedTimeline) {
     const resolvedTeam = resolveTeamForEvent(match, rawEvent.teamName, rawEvent.teamExternalId);
     const linkedPlayer = await findOrLinkPlayerByName(rawEvent.playerName, resolvedTeam?.name ?? rawEvent.teamName);
-    const externalId = buildStableTimelineExternalId(match.externalId, rawEvent);
 
     if (rawEvent.eventType === "GOAL") {
       goals += 1;
@@ -402,6 +412,16 @@ export async function syncMatchTimeline(matchId: string) {
     });
 
     stored += 1;
+  }
+
+  if (incomingExternalIds.length) {
+    await prisma.matchEvent.deleteMany({
+      where: {
+        matchId: match.id,
+        externalProvider: "THESPORTSDB",
+        externalId: { notIn: incomingExternalIds },
+      },
+    });
   }
 
   const scorers = await getMatchScorers(match.id);

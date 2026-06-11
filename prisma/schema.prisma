@@ -41,6 +41,7 @@ enum MatchEventType {
 enum FantasyPointSourceType {
   GOAL
   TEAM_WIN
+  YELLOW_CARD
   RED_CARD
   PENALTY_SAVE
   CLEAN_SHEET

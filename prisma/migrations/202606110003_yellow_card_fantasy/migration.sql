@@ -1,0 +1,1 @@
+ALTER TYPE "FantasyPointSourceType" ADD VALUE 'YELLOW_CARD';

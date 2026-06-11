@@ -4,6 +4,7 @@ import type { FantasyPointEntry, MatchEventItem, Player } from "@/lib/types";
 export const fantasyScoringRules = {
   goal: 3,
   teamWin: 2,
+  yellowCard: -1,
   redCard: -3,
   cleanSheet: 4,
 } as const;
@@ -19,6 +20,7 @@ export function calculateFantasyPoints(
     player.stats.goals * fantasyScoringRules.goal +
     teamWins * fantasyScoringRules.teamWin +
     cleanSheets * fantasyScoringRules.cleanSheet +
+    player.stats.yellowCards * fantasyScoringRules.yellowCard +
     player.stats.redCards * fantasyScoringRules.redCard
   );
 }
@@ -73,7 +75,7 @@ type FantasyPointLogDraft = {
   fantasyTeamId: string;
   playerId: string;
   matchId: string;
-  sourceType: "GOAL" | "TEAM_WIN" | "RED_CARD" | "PENALTY_SAVE" | "CLEAN_SHEET";
+  sourceType: "GOAL" | "TEAM_WIN" | "YELLOW_CARD" | "RED_CARD" | "PENALTY_SAVE" | "CLEAN_SHEET";
   sourceEventId?: string;
   sourceKey: string;
   points: number;
@@ -125,6 +127,9 @@ export function buildFantasyPointEntriesForMatch(
     }
 
     const playerGoalEvents = events.filter((event) => event.eventType === "GOAL" && event.playerId === selection.playerId);
+    const playerYellowCardEvents = events.filter(
+      (event) => event.eventType === "YELLOW_CARD" && event.playerId === selection.playerId,
+    );
     const playerRedCardEvents = events.filter((event) => event.eventType === "RED_CARD" && event.playerId === selection.playerId);
 
     for (const event of playerGoalEvents) {
@@ -151,6 +156,20 @@ export function buildFantasyPointEntriesForMatch(
         sourceKey: `${match.id}:${selection.playerId}:TEAM_WIN`,
         points: fantasyScoringRules.teamWin,
         description: `${selection.playerName} gano el partido con su seleccion.`,
+      });
+    }
+
+    for (const event of playerYellowCardEvents) {
+      entries.push({
+        userId: selection.userId,
+        fantasyTeamId: selection.fantasyTeamId,
+        playerId: selection.playerId,
+        matchId: match.id,
+        sourceType: "YELLOW_CARD",
+        sourceEventId: event.id,
+        sourceKey: `${match.id}:${selection.playerId}:YELLOW_CARD:${event.id}`,
+        points: fantasyScoringRules.yellowCard,
+        description: `${selection.playerName} recibio tarjeta amarilla al ${event.minute ?? "?"}.`,
       });
     }
 

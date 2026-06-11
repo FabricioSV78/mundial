@@ -38,6 +38,28 @@ test("normaliza evento RED_CARD desde TheSportsDB", () => {
   assert.equal(event.minute, 78);
 });
 
+test("normaliza tarjetas desde strTimelineDetail cuando strTimeline es generico", () => {
+  const yellowCard = normalizeTimelineEvent({
+    idTimeline: "tl-yellow",
+    strTimeline: "Card",
+    strTimelineDetail: "Yellow Card",
+    intTime: "17",
+    strPlayer: "Teboho Mokoena",
+    strTeam: "South Africa",
+  });
+  const redCard = normalizeTimelineEvent({
+    idTimeline: "tl-red",
+    strTimeline: "Card",
+    strTimelineDetail: "Red Card",
+    intTime: "49",
+    strPlayer: "Sphephelo Sithole",
+    strTeam: "South Africa",
+  });
+
+  assert.equal(yellowCard.eventType, "YELLOW_CARD");
+  assert.equal(redCard.eventType, "RED_CARD");
+});
+
 test("retorna array vacio cuando timeline viene null", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () =>
@@ -97,6 +119,19 @@ test("calcula puntos fantasy por gol, victoria y roja sin duplicar al recalcular
       rawPayload: {},
     },
     {
+      id: "yellow-1",
+      matchId: "m1",
+      externalId: "yellow-1",
+      externalProvider: "THESPORTSDB",
+      minute: 33,
+      eventType: "YELLOW_CARD",
+      playerId: "p1",
+      playerName: "Lionel Messi",
+      teamId: "arg",
+      teamName: "Argentina",
+      rawPayload: {},
+    },
+    {
       id: "red-1",
       matchId: "m1",
       externalId: "red-1",
@@ -145,11 +180,14 @@ test("calcula puntos fantasy por gol, victoria y roja sin duplicar al recalcular
   assert.deepEqual(resultA, resultB);
   assert.equal(new Set(resultA.map((entry) => entry.sourceKey)).size, resultA.length);
 
+  const yellowCardLogs = resultA.filter((entry) => entry.sourceType === "YELLOW_CARD");
   const messiLogs = resultA.filter((entry) => entry.playerId === "p1");
   const julianLogs = resultA.filter((entry) => entry.playerId === "p2");
   const mbappeLogs = resultA.filter((entry) => entry.playerId === "p3");
 
-  assert.equal(messiLogs.reduce((total, entry) => total + entry.points, 0), 2);
+  assert.equal(yellowCardLogs.length, 1);
+  assert.equal(yellowCardLogs[0].points, -1);
+  assert.equal(messiLogs.reduce((total, entry) => total + entry.points, 0), 1);
   assert.equal(julianLogs.reduce((total, entry) => total + entry.points, 0), 2);
   assert.equal(mbappeLogs.length, 0);
 });
