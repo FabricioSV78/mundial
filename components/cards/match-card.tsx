@@ -31,10 +31,12 @@ export function MatchCard({
 }) {
   const locked = match.status !== "SCHEDULED";
   const startsAt = match.matchDate ?? match.date;
-  const points = prediction ? calculatePredictionPoints(match, prediction) : 0;
+  const isFinished = match.status === "FINISHED";
+  const isLive = match.status === "LIVE";
+  const points = isFinished && prediction ? calculatePredictionPoints(match, prediction) : 0;
   const actualWinner = match.result ? getWinner(match.result.homeGoals, match.result.awayGoals) : null;
   const predictedWinner = prediction ? getWinner(prediction.homeGoals, prediction.awayGoals) : null;
-  const predictionStatus = !match.result || !prediction
+  const predictionStatus = !isFinished || !match.result || !prediction
     ? null
     : prediction.homeGoals === match.result.homeGoals && prediction.awayGoals === match.result.awayGoals
       ? "exact"
@@ -86,26 +88,38 @@ export function MatchCard({
         <div className="space-y-3 rounded-[8px] bg-emerald-400/10 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="font-bold">
-              Final: {match.result.homeGoals} - {match.result.awayGoals}
+              {isFinished ? "Final" : isLive ? "En vivo" : "Marcador"}: {match.result.homeGoals} - {match.result.awayGoals}
             </span>
-            {prediction ? <PointsBadge points={points} /> : null}
+            {isFinished && prediction ? <PointsBadge points={points} /> : null}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={actualWinner === "DRAW" ? "blue" : "green"}>
-              {actualWinner === "DRAW" ? "Empate" : `${winnerName} gano`}
-            </Badge>
-            {actualWinner !== "DRAW" ? (
-              <span className="text-sm font-semibold text-white/75">
-                por {winnerMargin} {winnerMargin === 1 ? "gol" : "goles"}
-              </span>
-            ) : null}
-            {predictionStatus === "exact" ? <Badge tone="green">Marcador exacto</Badge> : null}
-            {predictionStatus === "winner" ? <Badge tone="gold">Acertaste el ganador</Badge> : null}
-            {predictionStatus === "miss" ? <Badge tone="red">No acertaste esta vez</Badge> : null}
-          </div>
+          {isFinished ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={actualWinner === "DRAW" ? "blue" : "green"}>
+                {actualWinner === "DRAW" ? "Empate" : `${winnerName} gano`}
+              </Badge>
+              {actualWinner !== "DRAW" ? (
+                <span className="text-sm font-semibold text-white/75">
+                  por {winnerMargin} {winnerMargin === 1 ? "gol" : "goles"}
+                </span>
+              ) : null}
+              {predictionStatus === "exact" ? <Badge tone="green">Marcador exacto</Badge> : null}
+              {predictionStatus === "winner" ? <Badge tone="gold">Acertaste el ganador</Badge> : null}
+              {predictionStatus === "miss" ? <Badge tone="red">No acertaste esta vez</Badge> : null}
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={isLive ? "red" : "blue"}>{isLive ? "Resultado parcial" : "Resultado no final"}</Badge>
+              {prediction ? (
+                <span className="text-sm font-semibold text-white/75">
+                  Tu pronostico se evaluara cuando el partido termine.
+                </span>
+              ) : null}
+            </div>
+          )}
           {match.result.scorer ? (
             <p className="text-sm font-semibold text-white/75">
-              Goleador confirmado: <span className="font-black text-white">{match.result.scorer}</span>
+              {isFinished ? "Goleador confirmado" : "Goleador provisional"}:{" "}
+              <span className="font-black text-white">{match.result.scorer}</span>
             </p>
           ) : null}
         </div>

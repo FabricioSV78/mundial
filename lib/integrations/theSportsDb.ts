@@ -220,10 +220,10 @@ function normalizeTeam(name: string, externalId?: string | null, flagUrl?: strin
   };
 }
 
-async function getJson<T>(url: string): Promise<T | null> {
+async function getJson<T>(url: string, options?: { noStore?: boolean }): Promise<T | null> {
   try {
     const response = await fetch(url, {
-      next: { revalidate: 60 * 15 },
+      ...(options?.noStore ? { cache: "no-store" as const } : { next: { revalidate: 60 * 15 } }),
       headers: { accept: "application/json" },
     });
 
@@ -321,7 +321,7 @@ export async function fetchEventTimeline(eventId: string) {
   }
 
   const url = `${getBaseUrl()}/lookuptimeline.php?id=${encodeURIComponent(eventId)}`;
-  const data = await getJson<TimelineResponse>(url);
+  const data = await getJson<TimelineResponse>(url, { noStore: true });
   const timeline = data?.timeline ?? data?.events ?? data?.event ?? [];
 
   if (!Array.isArray(timeline)) {
