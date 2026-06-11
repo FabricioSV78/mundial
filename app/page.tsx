@@ -110,6 +110,7 @@ export default async function Home() {
             sizes="(min-width: 768px) 46vw, 100vw"
             className="object-cover opacity-75 saturate-125"
             priority
+            loading="eager"
           />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_68%_18%,rgba(250,204,21,0.2),transparent_18rem),linear-gradient(0deg,rgba(2,6,23,0.94)_0%,rgba(2,6,23,0.42)_58%,rgba(2,6,23,0.16)_100%)]" />
           <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#22c55e,#facc15,#ef4444)]" />

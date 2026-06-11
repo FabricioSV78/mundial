@@ -1,14 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
-const PointsChart = dynamic(
-  () => import("@/components/cards/points-chart").then((mod) => mod.PointsChart),
-  {
-    ssr: false,
-    loading: () => <div className="h-72 rounded-[8px] bg-white/5" />,
-  },
-);
+import { PointsChart } from "@/components/cards/points-chart";
 
 export function PointsChartLoader({
   data,
