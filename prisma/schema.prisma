@@ -1,0 +1,286 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  POSTPONED
+  CANCELLED
+  UNKNOWN
+}
+
+enum Position {
+  GK
+  DEF
+  MID
+  FWD
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum MatchEventType {
+  GOAL
+  RED_CARD
+  YELLOW_CARD
+  ASSIST
+  SUBSTITUTION
+  UNKNOWN
+}
+
+enum FantasyPointSourceType {
+  GOAL
+  TEAM_WIN
+  RED_CARD
+}
+
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  username        String         @unique
+  name            String
+  passwordHash    String?
+  avatar          String?
+  favoriteCountry String?
+  role            Role           @default(USER)
+  createdAt       DateTime       @default(now())
+  leagueMembers   LeagueMember[]
+  predictions     Prediction[]
+  fantasyTeams    FantasyTeam[]
+  fantasyPointLogs FantasyPointLog[]
+}
+
+model League {
+  id         String         @id @default(cuid())
+  name       String
+  inviteCode String         @unique
+  createdAt  DateTime       @default(now())
+  members    LeagueMember[]
+}
+
+model LeagueMember {
+  id       String @id @default(cuid())
+  userId   String
+  leagueId String
+  points   Int    @default(0)
+  user     User   @relation(fields: [userId], references: [id])
+  league   League @relation(fields: [leagueId], references: [id])
+
+  @@unique([userId, leagueId])
+}
+
+model Team {
+  id               String   @id @default(cuid())
+  name             String
+  code             String
+  shortName        String?
+  flag             String
+  flagUrl          String?
+  group            String   @default("")
+  groupId          String?
+  externalId       String?
+  externalProvider String?
+  isPlaceholder    Boolean  @default(false)
+  placeholderType  String?
+  replacedByTeamId String?
+  players          Player[]
+  homeMatches      Match[] @relation("HomeMatches")
+  awayMatches      Match[] @relation("AwayMatches")
+  matchEvents      MatchEvent[]
+  tournamentGroup  TournamentGroup? @relation(fields: [groupId], references: [id])
+  replacedByTeam   Team?    @relation("PlaceholderReplacement", fields: [replacedByTeamId], references: [id])
+  replacedPlaceholders Team[] @relation("PlaceholderReplacement")
+
+  @@unique([externalProvider, externalId])
+}
+
+model Tournament {
+  id        String            @id @default(cuid())
+  name      String
+  year      Int
+  slug      String            @unique
+  createdAt DateTime          @default(now())
+  groups    TournamentGroup[]
+}
+
+model TournamentGroup {
+  id           String     @id @default(cuid())
+  tournamentId String
+  name         String
+  order        Int
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  teams        Team[]
+  matches      Match[]
+
+  @@unique([tournamentId, name])
+}
+
+model Stadium {
+  id       String  @id
+  name     String
+  city     String
+  country  String
+  capacity Int
+  lat      Float
+  lng      Float
+  image    String
+  funFact  String
+  matches  Match[]
+}
+
+model Match {
+  id               String      @id @default(cuid())
+  externalId       String?
+  externalProvider String?
+  homeTeamId       String
+  awayTeamId       String
+  stadiumId        String?
+  matchDate        DateTime
+  status           MatchStatus @default(SCHEDULED)
+  homeScore        Int?
+  awayScore        Int?
+  groupName        String?
+  groupId          String?
+  stage            String?
+  stadiumName      String?
+  city             String?
+  country          String?
+  scorer           String?
+  lastSyncedAt     DateTime?
+  homeTeam         Team        @relation("HomeMatches", fields: [homeTeamId], references: [id])
+  awayTeam         Team        @relation("AwayMatches", fields: [awayTeamId], references: [id])
+  stadium          Stadium?    @relation(fields: [stadiumId], references: [id])
+  tournamentGroup  TournamentGroup? @relation(fields: [groupId], references: [id])
+  predictions      Prediction[]
+  events           MatchEvent[]
+  fantasyPointLogs FantasyPointLog[]
+
+  @@unique([externalProvider, externalId])
+  @@index([matchDate])
+  @@index([status])
+}
+
+model Player {
+  id               String      @id @default(cuid())
+  externalId       String?
+  externalProvider String?
+  name             String
+  teamId           String
+  position         Position
+  price            Float
+  points           Int         @default(0)
+  avatar           String
+  photoUrl         String?
+  goals            Int         @default(0)
+  assists          Int         @default(0)
+  cleanSheets      Int         @default(0)
+  saves            Int         @default(0)
+  yellowCards      Int         @default(0)
+  redCards         Int         @default(0)
+  minutes          Int         @default(0)
+  team             Team        @relation(fields: [teamId], references: [id])
+  fantasySlots     FantasySlot[]
+  matchEvents      MatchEvent[]
+  fantasyPointLogs FantasyPointLog[]
+
+  @@unique([externalProvider, externalId])
+}
+
+model Prediction {
+  id           String   @id @default(cuid())
+  userId       String
+  matchId      String
+  homeGoals    Int
+  awayGoals    Int
+  scorer       String?
+  winnerTeamId String?
+  points       Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+  match        Match    @relation(fields: [matchId], references: [id])
+
+  @@unique([userId, matchId])
+}
+
+model FantasyTeam {
+  id        String        @id @default(cuid())
+  userId    String
+  formation String
+  budget    Float         @default(100)
+  user      User          @relation(fields: [userId], references: [id])
+  slots     FantasySlot[]
+  pointLogs FantasyPointLog[]
+}
+
+model FantasySlot {
+  id            String      @id @default(cuid())
+  fantasyTeamId String
+  playerId      String
+  fantasyTeam   FantasyTeam @relation(fields: [fantasyTeamId], references: [id])
+  player        Player      @relation(fields: [playerId], references: [id])
+
+  @@unique([fantasyTeamId, playerId])
+}
+
+model MatchEvent {
+  id               String         @id @default(cuid())
+  matchId          String
+  externalId       String
+  externalProvider String
+  minute           Int?
+  eventType        MatchEventType @default(UNKNOWN)
+  playerId         String?
+  playerName       String?
+  teamId           String?
+  teamName         String?
+  rawPayload       Json
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  match            Match          @relation(fields: [matchId], references: [id])
+  player           Player?        @relation(fields: [playerId], references: [id])
+  team             Team?          @relation(fields: [teamId], references: [id])
+
+  @@unique([externalProvider, externalId])
+  @@index([matchId, eventType])
+  @@index([playerId])
+}
+
+model FantasyPointLog {
+  id          String                 @id @default(cuid())
+  userId      String
+  fantasyTeamId String
+  playerId    String
+  matchId     String
+  sourceType  FantasyPointSourceType
+  sourceEventId String?
+  sourceKey   String                 @unique
+  points      Int
+  description String
+  createdAt   DateTime               @default(now())
+  user        User                   @relation(fields: [userId], references: [id])
+  fantasyTeam FantasyTeam            @relation(fields: [fantasyTeamId], references: [id])
+  player      Player                 @relation(fields: [playerId], references: [id])
+  match       Match                  @relation(fields: [matchId], references: [id])
+
+  @@index([userId, matchId])
+  @@index([fantasyTeamId, playerId])
+}
+
+model SyncLog {
+  id        String   @id @default(cuid())
+  provider  String
+  type      String
+  status    String
+  message   String
+  createdAt DateTime @default(now())
+}
