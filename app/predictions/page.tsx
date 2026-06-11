@@ -1,6 +1,7 @@
 import { MatchCard } from "@/components/cards/match-card";
 import { SiteShell } from "@/components/layout/site-shell";
 import { SportsHero } from "@/components/layout/sports-hero";
+import { PredictionRefreshListener } from "@/components/predictions/prediction-refresh-listener";
 import { PredictionStageSwitcher } from "@/components/predictions/prediction-stage-switcher";
 import { EmptyState } from "@/components/ui/empty-state";
 import { requirePageUser } from "@/lib/currentUser";
@@ -31,6 +32,7 @@ export default async function PredictionsPage(props: { searchParams: Promise<{ s
 
   return (
     <SiteShell isAuthenticated>
+      <PredictionRefreshListener />
       <section className="mx-auto max-w-7xl px-4 py-8 pb-24">
         <SportsHero
           eyebrow="Pronosticos"

@@ -1,6 +1,7 @@
 import { MatchCard } from "@/components/cards/match-card";
 import { LeagueSwitcher } from "@/components/leagues/league-switcher";
 import { PointsChartLoader } from "@/components/cards/points-chart-loader";
+import { PredictionRefreshListener } from "@/components/predictions/prediction-refresh-listener";
 import { TrophyCard } from "@/components/cards/trophy-card";
 import { SiteShell } from "@/components/layout/site-shell";
 import { SportsHero } from "@/components/layout/sports-hero";
@@ -51,6 +52,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
 
   return (
     <SiteShell isAuthenticated>
+      <PredictionRefreshListener />
       <section className="mx-auto max-w-7xl space-y-6 px-4 py-8 pb-24">
         <SportsHero
           eyebrow="Centro de control"

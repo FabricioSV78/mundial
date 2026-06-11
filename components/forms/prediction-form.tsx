@@ -3,12 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import confetti from "canvas-confetti";
 import { Save, Search, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isPredictionLocked } from "@/lib/predictions";
+import { PREDICTION_SYNC_STORAGE_KEY } from "@/lib/predictionSync";
 import { isSameComparableName } from "@/lib/scoring";
 import { predictionSchema } from "@/lib/validations/prediction";
 
@@ -32,6 +34,7 @@ export function PredictionForm({
   matchId: string;
   defaultValues?: Partial<PredictionValues>;
 }) {
+  const router = useRouter();
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [now, setNow] = useState(() => Date.now());
@@ -79,6 +82,10 @@ export function PredictionForm({
     setScorerFocused(false);
   }
 
+  function notifyPredictionUpdated(updatedAt?: string) {
+    window.localStorage.setItem(PREDICTION_SYNC_STORAGE_KEY, updatedAt ?? "updated");
+  }
+
   async function onSubmit(values: PredictionValues) {
     const canonicalScorer = values.scorer ? resolveCanonicalScorer(values.scorer) : undefined;
 
@@ -97,7 +104,10 @@ export function PredictionForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ ...values, scorer: canonicalScorer ?? "", matchId }),
       });
-      const data = (await response.json()) as { message?: string };
+      const data = (await response.json()) as {
+        message?: string;
+        prediction?: { updatedAt?: string };
+      };
 
       if (!response.ok) {
         setStatus("error");
@@ -113,6 +123,8 @@ export function PredictionForm({
         scorer: canonicalScorer ?? "",
       });
       confetti({ particleCount: 80, spread: 65, origin: { y: 0.8 } });
+      notifyPredictionUpdated(data.prediction?.updatedAt);
+      router.refresh();
     } catch {
       setStatus("error");
       setMessage("No se pudo contactar el backend. Revisa la DB y vuelve a intentar.");
