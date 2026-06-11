@@ -45,9 +45,11 @@ export function StadiumModal({
               {stadium.city}, {stadium.country}
             </p>
           </div>
-          <p className="rounded-[8px] bg-emerald-400/10 p-4 text-sm leading-6 text-emerald-100">
-            {stadium.funFact}
-          </p>
+          {stadium.funFact ? (
+            <p className="rounded-[8px] bg-emerald-400/10 p-4 text-sm leading-6 text-emerald-100">
+              {stadium.funFact}
+            </p>
+          ) : null}
           <div className="space-y-2">
             <h3 className="font-black">Partidos en esta sede</h3>
             {matches.length ? (

@@ -189,9 +189,6 @@ export function PredictionForm({
                   </button>
                 ) : null}
               </div>
-              <p className="text-xs font-semibold text-white/55">
-                Se suman puntos solo si la API confirma el goleador y tu seleccion coincide.
-              </p>
               {scorerFocused && filteredScorerOptions.length ? (
                 <div className="max-h-48 overflow-auto rounded-[10px] border border-white/10 bg-slate-950/80 p-2">
                   {filteredScorerOptions.map((option) => (

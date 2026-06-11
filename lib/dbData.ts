@@ -54,6 +54,7 @@ const venueMeta: Record<string, { city: string; country: string; lat: number; ln
   "Hard Rock Stadium": { city: "Miami", country: "United States", lat: 25.958, lng: -80.2389, capacity: 65326 },
   "Mercedes-Benz Stadium": { city: "Atlanta", country: "United States", lat: 33.7554, lng: -84.4008, capacity: 71000 },
   "Arrowhead Stadium": { city: "Kansas City", country: "United States", lat: 39.049, lng: -94.4839, capacity: 76416 },
+  "GEHA Field at Arrowhead Stadium": { city: "Kansas City", country: "United States", lat: 39.049, lng: -94.4839, capacity: 76416 },
 };
 
 const genericStadiumImage =
@@ -77,6 +78,7 @@ const stadiumImageByName: Record<string, string> = {
   "Hard Rock Stadium": "/stadiums/hard-rock-stadium.jpg",
   "Mercedes-Benz Stadium": "/stadiums/mercedes-benz-stadium.jpg",
   "Arrowhead Stadium": "/stadiums/arrowhead-stadium.jpg",
+  "GEHA Field at Arrowhead Stadium": "/stadiums/arrowhead-stadium.jpg",
 };
 
 function stadiumFromMatch(match: { stadiumName: string | null; city: string | null; country: string | null }): Stadium {
@@ -95,7 +97,7 @@ function stadiumFromMatch(match: { stadiumName: string | null; city: string | nu
     lat: meta?.lat ?? 39,
     lng: meta?.lng ?? -98,
     image,
-    funFact: meta ? "Dato de sede enriquecido localmente; partidos y venue vienen de TheSportsDB." : "Datos detallados pendientes de API.",
+    funFact: "",
   };
 }
 
