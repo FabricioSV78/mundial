@@ -2,31 +2,30 @@
   "name": "mundial-battle",
   "version": "0.1.0",
   "private": true,
-
   "engines": {
-  "node": ">=20.9.0"
-  }, 
-  
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "node .next/standalone/server.js",
-    "lint": "eslint",
-    "postinstall": "prisma generate",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:migrate:deploy": "prisma migrate deploy",
-    "seed": "tsx prisma/seed.ts",
-    "test": "node --import tsx --test tests/*.test.ts"
+    "node": ">=20.9.0"
   },
-
-  
+  "scripts": {
+  "dev": "next dev",
+  "build": "next build && npm run copy-standalone-assets",
+  "copy-standalone-assets": "cpy \".next/static/**\" \".next/standalone/.next/static\" --parents && cpy \"public/**\" \".next/standalone/public\" --parents",
+  "start": "cross-env HOSTNAME=0.0.0.0 node .next/standalone/server.js",
+  "lint": "eslint",
+  "postinstall": "prisma generate",
+  "prisma:generate": "prisma generate",
+  "prisma:migrate": "prisma migrate dev",
+  "prisma:migrate:deploy": "prisma migrate deploy",
+  "seed": "tsx prisma/seed.ts",
+  "test": "node --import tsx --test tests/*.test.ts"
+  },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^6.19.3",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cpy-cli": "^7.0.0",
+    "cross-env": "^10.1.0",
     "dotenv": "^16.5.0",
     "framer-motion": "^12.40.0",
     "leaflet": "^1.9.4",
