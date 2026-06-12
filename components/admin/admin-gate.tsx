@@ -2,7 +2,7 @@
 
 import { Lock, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,34 +21,49 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState("");
   const [checkingStoredToken, setCheckingStoredToken] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const checkedStoredTokenRef = useRef(false);
 
   const verify = useCallback(async (candidateToken = token) => {
     setError("");
-    const response = await fetch("/api/admin/verify", {
-      method: "POST",
-      headers: { authorization: `Bearer ${candidateToken}` },
-    });
-    const data = (await response.json()) as { ok?: boolean };
+    try {
+      const response = await fetch("/api/admin/verify", {
+        method: "POST",
+        headers: { authorization: `Bearer ${candidateToken}` },
+      });
+      const data = (await response.json()) as { ok?: boolean; message?: string };
 
-    if (data.ok) {
-      window.sessionStorage.setItem("admin-sync-token", candidateToken);
-      setVerified(true);
+      if (data.ok) {
+        window.sessionStorage.setItem("admin-sync-token", candidateToken);
+        setVerified(true);
+        setCheckingStoredToken(false);
+        return;
+      }
+
+      if (response.status === 429) {
+        setError(data.message ?? "Demasiados intentos admin. Espera un momento.");
+      } else {
+        window.sessionStorage.removeItem("admin-sync-token");
+        setError(data.message ?? "Token admin invalido.");
+      }
+    } catch {
+      setError("No se pudo verificar el token admin. Intenta de nuevo.");
+    } finally {
       setCheckingStoredToken(false);
-      return;
     }
-
-    window.sessionStorage.removeItem("admin-sync-token");
-    setCheckingStoredToken(false);
-    setError("Token admin invalido.");
   }, [token]);
 
   useEffect(() => {
+    if (checkedStoredTokenRef.current) {
+      return;
+    }
+
     const storedToken = getStoredAdminToken();
 
     if (!storedToken) {
       return;
     }
 
+    checkedStoredTokenRef.current = true;
     const frame = window.requestAnimationFrame(() => {
       setToken(storedToken);
       setCheckingStoredToken(true);

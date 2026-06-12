@@ -1,7 +1,9 @@
 import {
+  fetchEventById,
   fetchPlayersByTeamId,
   fetchWorldCupTable,
   fetchWorldCupEvents,
+  type TheSportsDbEvent,
   normalizeTheSportsDbEvent,
   normalizeTheSportsDbPlayer,
 } from "@/lib/integrations/theSportsDb";
@@ -219,6 +221,26 @@ async function upsertMatch(match: NormalizedMatch) {
   return { match: saved, predictionsRecalculated, homeTeam, awayTeam };
 }
 
+function shouldRefreshEventById(match: NormalizedMatch) {
+  return match.status === "LIVE" || match.status === "UNKNOWN";
+}
+
+async function normalizeFreshEvent(event: TheSportsDbEvent) {
+  const normalized = normalizeTheSportsDbEvent(event);
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (!event.idEvent || !shouldRefreshEventById(normalized)) {
+    return normalized;
+  }
+
+  const freshEvent = await fetchEventById(event.idEvent, { noStore: true });
+
+  return normalizeTheSportsDbEvent(freshEvent ?? event);
+}
+
 export async function syncWorldCupFromTheSportsDb(options?: { includeTimeline?: boolean }): Promise<SyncResult> {
   const startedAt = new Date();
   const [events, tableRows] = await Promise.all([
@@ -230,8 +252,7 @@ export async function syncWorldCupFromTheSportsDb(options?: { includeTimeline?: 
       .filter((row) => row.strTeam && row.strGroup)
       .map((row) => [row.strTeam!, row.strGroup!]),
   );
-  const baseNormalized = events
-    .map((event) => normalizeTheSportsDbEvent(event))
+  const baseNormalized = (await Promise.all(events.map((event) => normalizeFreshEvent(event))))
     .filter((event): event is NormalizedMatch => Boolean(event));
   const normalized: NormalizedMatch[] = baseNormalized.map((match) => {
       const homeGroup = groupByTeamName.get(match.homeTeam.name);

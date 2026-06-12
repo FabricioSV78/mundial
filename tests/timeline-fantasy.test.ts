@@ -60,6 +60,19 @@ test("normaliza tarjetas desde strTimelineDetail cuando strTimeline es generico"
   assert.equal(redCard.eventType, "RED_CARD");
 });
 
+test("no cuenta como gol un VAR de gol anulado", () => {
+  const event = normalizeTimelineEvent({
+    idTimeline: "tl-var",
+    strTimeline: "Var",
+    strTimelineDetail: "Goal Disallowed - offside",
+    intTime: "77",
+    strPlayer: "Tomas Soucek",
+    strTeam: "Czech Republic",
+  });
+
+  assert.equal(event.eventType, "UNKNOWN");
+});
+
 test("retorna array vacio cuando timeline viene null", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () =>
@@ -71,6 +84,46 @@ test("retorna array vacio cuando timeline viene null", async () => {
   try {
     const events = await fetchEventTimeline("12345");
     assert.deepEqual(events, []);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("filtra eventos UNKNOWN del timeline de TheSportsDB", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        timeline: [
+          {
+            idTimeline: "goal-1",
+            strTimeline: "Goal",
+            strTimelineDetail: "Normal Goal",
+            strPlayer: "Hyeon-gyu Oh",
+            strTeam: "South Korea",
+            intTime: "80",
+          },
+          {
+            idTimeline: "var-1",
+            strTimeline: "Var",
+            strTimelineDetail: "Goal Disallowed - offside",
+            strPlayer: "Tomas Soucek",
+            strTeam: "Czech Republic",
+            intTime: "77",
+          },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      },
+    );
+
+  try {
+    const events = await fetchEventTimeline("2461103");
+    assert.equal(events.length, 1);
+    assert.equal(events[0].eventType, "GOAL");
+    assert.equal(events[0].playerName, "Hyeon-gyu Oh");
   } finally {
     globalThis.fetch = originalFetch;
   }

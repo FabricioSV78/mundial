@@ -414,15 +414,13 @@ export async function syncMatchTimeline(matchId: string) {
     stored += 1;
   }
 
-  if (incomingExternalIds.length) {
-    await prisma.matchEvent.deleteMany({
-      where: {
-        matchId: match.id,
-        externalProvider: "THESPORTSDB",
-        externalId: { notIn: incomingExternalIds },
-      },
-    });
-  }
+  await prisma.matchEvent.deleteMany({
+    where: {
+      matchId: match.id,
+      externalProvider: "THESPORTSDB",
+      ...(incomingExternalIds.length ? { externalId: { notIn: incomingExternalIds } } : {}),
+    },
+  });
 
   const scorers = await getMatchScorers(match.id);
   const headlineScorer = [...scorers].sort((a, b) => b.goals - a.goals || (a.minutes[0] ?? 999) - (b.minutes[0] ?? 999))[0];

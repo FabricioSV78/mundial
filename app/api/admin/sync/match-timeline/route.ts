@@ -6,6 +6,13 @@ import { buildRateLimitKey, checkRateLimit } from "@/lib/rateLimit";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  if (!isAdminRequestAuthorized(request)) {
+    return NextResponse.json(
+      { ok: false, message: "No autorizado. Usa un token admin para sincronizar timeline." },
+      { status: 401 },
+    );
+  }
+
   const rateLimit = checkRateLimit(buildRateLimitKey(request, "admin-timeline-sync"), {
     limit: 12,
     windowMs: 10 * 60 * 1000,
@@ -15,13 +22,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { ok: false, message: "Demasiadas sincronizaciones de eventos. Espera un momento." },
       { status: 429, headers: { "retry-after": String(rateLimit.retryAfter) } },
-    );
-  }
-
-  if (!isAdminRequestAuthorized(request)) {
-    return NextResponse.json(
-      { ok: false, message: "No autorizado. Usa un token admin para sincronizar timeline." },
-      { status: 401 },
     );
   }
 

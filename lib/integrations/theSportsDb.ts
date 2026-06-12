@@ -93,6 +93,7 @@ const DEFAULT_BASE_URL = "https://www.thesportsdb.com/api/v1/json/3";
 const DEFAULT_LEAGUE_ID = "4429";
 const DEFAULT_SEASON = "2026";
 const PROVIDER = "THESPORTSDB" as const;
+const LIVE_MATCH_STALE_AFTER_MS = 120 * 60 * 1000;
 
 function getBaseUrl() {
   const configuredBaseUrl =
@@ -190,6 +191,10 @@ function inferStatus(event: TheSportsDbEvent, matchDate: Date): MatchStatus {
   }
 
   if (rawStatus.includes("live") || rawStatus.includes("1h") || rawStatus.includes("2h")) {
+    if (hasResult && Date.now() - matchDate.getTime() > LIVE_MATCH_STALE_AFTER_MS) {
+      return "FINISHED";
+    }
+
     return "LIVE";
   }
 
@@ -246,6 +251,16 @@ function normalizeEventType(...values: Array<string | null | undefined>): MatchE
     .toLowerCase()
     .replace(/[_-]+/g, " ")
     .trim();
+
+  if (
+    normalized.includes("disallowed") ||
+    normalized.includes("anulad") ||
+    normalized.includes("cancelled") ||
+    normalized.includes("canceled") ||
+    normalized.includes("offside")
+  ) {
+    return "UNKNOWN";
+  }
 
   if (normalized.includes("goal")) {
     return "GOAL";
@@ -310,13 +325,14 @@ export async function fetchWorldCupEvents(options?: { noStore?: boolean }) {
   return Array.isArray(events) ? events : [];
 }
 
-export async function fetchEventById(eventId: string) {
+export async function fetchEventById(eventId: string, options?: { noStore?: boolean }) {
   if (!eventId) {
     return null;
   }
 
   const data = await getJson<EventsSeasonResponse>(
     `${getBaseUrl()}/lookupevent.php?id=${encodeURIComponent(eventId)}`,
+    { noStore: options?.noStore },
   );
   const events = data?.events ?? data?.event ?? [];
 
@@ -340,7 +356,7 @@ export async function fetchEventTimeline(eventId: string) {
 
   return timeline
     .map((rawEvent) => normalizeTimelineEvent(rawEvent))
-    .filter((event) => Boolean(event.playerName || event.teamName || event.eventType !== "UNKNOWN"));
+    .filter((event) => event.eventType !== "UNKNOWN" && Boolean(event.playerName || event.teamName));
 }
 
 export async function fetchPlayersByTeamId(teamId: string) {

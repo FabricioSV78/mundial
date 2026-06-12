@@ -63,6 +63,31 @@ test("trata timestamp sin zona de TheSportsDB como UTC", () => {
   assert.equal(normalized.matchDate.toISOString(), "2026-06-13T01:00:00.000Z");
 });
 
+test("cierra partido live con marcador si la API queda atrasada demasiado tiempo", () => {
+  const originalDateNow = Date.now;
+  Date.now = () => new Date("2026-06-12T04:45:00.000Z").getTime();
+
+  try {
+    const normalized = normalizeTheSportsDbEvent({
+      idEvent: "2461103",
+      idHomeTeam: "1",
+      idAwayTeam: "2",
+      strHomeTeam: "South Korea",
+      strAwayTeam: "Czech Republic",
+      intHomeScore: "2",
+      intAwayScore: "1",
+      strTimestamp: "2026-06-12T02:00:00",
+      strStatus: "2H",
+      strVenue: "Estadio Azteca",
+    });
+
+    assert.ok(normalized);
+    assert.equal(normalized.status, "FINISHED");
+  } finally {
+    Date.now = originalDateNow;
+  }
+});
+
 test("devuelve null si faltan campos esenciales", () => {
   assert.equal(normalizeTheSportsDbEvent({ idEvent: "x" }), null);
 });
