@@ -37,7 +37,10 @@ const fanStadiumImage = "https://pixy.org/src/38/384654.jpg";
 
 export default async function Home() {
   const matches = await getMatchesFromDb();
-  const featuredMatch = matches[0];
+  const featuredMatch =
+    matches.find((match) => match.status === "SCHEDULED") ??
+    matches.find((match) => match.status === "LIVE") ??
+    matches[0];
   const hostChips = ["Mexico", "Canada", "Estados Unidos"];
   const battleStats = [
     { value: "+5", label: "marcador exacto" },

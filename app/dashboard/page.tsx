@@ -1,4 +1,5 @@
 import { MatchCard } from "@/components/cards/match-card";
+import { PointsRulesModal } from "@/components/dashboard/points-rules-modal";
 import { LeagueSwitcher } from "@/components/leagues/league-switcher";
 import { PointsChartLoader } from "@/components/cards/points-chart-loader";
 import { PredictionRefreshListener } from "@/components/predictions/prediction-refresh-listener";
@@ -65,11 +66,14 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
           <Badge tone={userLeagues.length ? "blue" : "gold"}>
             {userLeagues.length ? `${userLeagues.length} ligas conectadas` : "Sin liga activa"}
           </Badge>
-          {activeLeague ? (
-            <p className="text-sm font-semibold text-white/65">
-              Viendo: <span className="font-black text-white">{activeLeague.name}</span>
-            </p>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            {activeLeague ? (
+              <p className="text-sm font-semibold text-white/65">
+                Viendo: <span className="font-black text-white">{activeLeague.name}</span>
+              </p>
+            ) : null}
+            <PointsRulesModal />
+          </div>
         </div>
         <LeagueSwitcher pathname="/dashboard" leagues={userLeagues} activeLeagueId={activeLeagueId} />
 
