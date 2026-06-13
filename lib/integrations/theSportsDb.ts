@@ -257,12 +257,29 @@ function normalizeEventType(...values: Array<string | null | undefined>): MatchE
     normalized.includes("anulad") ||
     normalized.includes("cancelled") ||
     normalized.includes("canceled") ||
-    normalized.includes("offside")
+    normalized.includes("offside") ||
+    normalized.includes("missed penalty") ||
+    normalized.includes("penalty missed") ||
+    normalized.includes("penalty miss")
   ) {
     return "UNKNOWN";
   }
 
-  if (normalized.includes("goal")) {
+  if (
+    normalized.includes("penalty save") ||
+    normalized.includes("saved penalty") ||
+    normalized.includes("penalty saved")
+  ) {
+    return "PENALTY_SAVE";
+  }
+
+  if (
+    normalized.includes("goal") ||
+    normalized.includes("penalty") ||
+    normalized.includes("free kick") ||
+    normalized.includes("freekick") ||
+    normalized.includes("own goal")
+  ) {
     return "GOAL";
   }
 

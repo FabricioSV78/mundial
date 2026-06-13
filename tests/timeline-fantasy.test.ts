@@ -25,6 +25,27 @@ test("normaliza evento GOAL desde TheSportsDB", () => {
   assert.equal(event.teamName, "Argentina");
 });
 
+test("normaliza goles de penal y tiro libre aunque no lleguen como goal normal", () => {
+  const penaltyGoal = normalizeTimelineEvent({
+    idTimeline: "tl-pen",
+    strTimelineDetail: "Penalty",
+    strEventType: "Goal",
+    intTime: "16",
+    strPlayer: "Breel Embolo",
+    strTeam: "Switzerland",
+  });
+  const freeKickGoal = normalizeTimelineEvent({
+    idTimeline: "tl-fk",
+    strTimelineDetail: "Free Kick",
+    intTime: "72",
+    strPlayer: "Akram Afif",
+    strTeam: "Qatar",
+  });
+
+  assert.equal(penaltyGoal.eventType, "GOAL");
+  assert.equal(freeKickGoal.eventType, "GOAL");
+});
+
 test("normaliza evento RED_CARD desde TheSportsDB", () => {
   const event = normalizeTimelineEvent({
     idTimeline: "tl-2",
@@ -71,6 +92,28 @@ test("no cuenta como gol un VAR de gol anulado", () => {
   });
 
   assert.equal(event.eventType, "UNKNOWN");
+});
+
+test("no cuenta penal atajado o errado como gol", () => {
+  const savedPenalty = normalizeTimelineEvent({
+    idTimeline: "tl-save",
+    strTimeline: "Penalty",
+    strTimelineDetail: "Penalty Saved",
+    intTime: "51",
+    strPlayer: "Almoez Ali",
+    strTeam: "Qatar",
+  });
+  const missedPenalty = normalizeTimelineEvent({
+    idTimeline: "tl-miss",
+    strTimeline: "Penalty",
+    strTimelineDetail: "Missed Penalty",
+    intTime: "88",
+    strPlayer: "Granit Xhaka",
+    strTeam: "Switzerland",
+  });
+
+  assert.equal(savedPenalty.eventType, "PENALTY_SAVE");
+  assert.equal(missedPenalty.eventType, "UNKNOWN");
 });
 
 test("retorna array vacio cuando timeline viene null", async () => {
