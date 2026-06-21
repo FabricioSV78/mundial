@@ -6,6 +6,7 @@ import {
   buildStableTimelineExternalId,
   matchesNormalizedName,
   normalizeLookupText,
+  shouldSyncTimelineForMatch,
   summarizeScorers,
 } from "../lib/matches/matchTimeline";
 import type { MatchEventItem } from "../lib/types";
@@ -196,6 +197,34 @@ test("genera externalId estable para evitar duplicados", () => {
       teamName: "Any",
     }),
     "timeline-22",
+  );
+});
+
+test("sincroniza timeline de partidos ya jugados aunque sigan como SCHEDULED", () => {
+  assert.equal(
+    shouldSyncTimelineForMatch(
+      {
+        externalId: "2391740",
+        status: "SCHEDULED",
+        matchDate: new Date("2026-06-17T01:00:00.000Z"),
+      },
+      new Date("2026-06-20T12:00:00.000Z"),
+    ),
+    true,
+  );
+});
+
+test("no sincroniza timeline global de partidos futuros programados", () => {
+  assert.equal(
+    shouldSyncTimelineForMatch(
+      {
+        externalId: "2391800",
+        status: "SCHEDULED",
+        matchDate: new Date("2026-06-25T01:00:00.000Z"),
+      },
+      new Date("2026-06-20T12:00:00.000Z"),
+    ),
+    false,
   );
 });
 

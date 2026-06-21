@@ -1,10 +1,10 @@
-import { fetchEventTimeline } from "@/lib/integrations/theSportsDb";
+import { fetchEventById, fetchEventTimeline, normalizeTheSportsDbEvent } from "@/lib/integrations/theSportsDb";
 import { calculateFantasyPointsForMatch, fantasyScoringRules } from "@/lib/fantasy/fantasyScoring";
 import { prisma } from "@/lib/prisma";
 import { isMissingTableError } from "@/lib/prismaErrors";
 import { recalculateUserLeaguePoints } from "@/lib/rankings";
 import { calculatePredictionPointsFromScores } from "@/lib/scoring";
-import type { MatchEventItem } from "@/lib/types";
+import type { MatchEventItem, MatchStatus } from "@/lib/types";
 
 export function normalizeLookupText(value?: string | null) {
   return (value ?? "")
@@ -40,6 +40,26 @@ export function buildStableTimelineExternalId(
     normalizeLookupText(event.playerName) || "na",
     normalizeLookupText(event.teamName) || "na",
   ].join(":");
+}
+
+export function shouldSyncTimelineForMatch(
+  match: { externalId: string | null; status: MatchStatus; matchDate: Date },
+  referenceDate = new Date(),
+) {
+  if (!match.externalId) {
+    return false;
+  }
+
+  if (match.status === "CANCELLED" || match.status === "POSTPONED") {
+    return false;
+  }
+
+  return (
+    match.status === "LIVE" ||
+    match.status === "FINISHED" ||
+    match.status === "UNKNOWN" ||
+    match.matchDate.getTime() <= referenceDate.getTime()
+  );
 }
 
 function resolveTeamForEvent(
@@ -186,6 +206,53 @@ async function recalculatePlayerTournamentStats(teamIds: string[]) {
       },
     });
   }
+}
+
+async function refreshMatchSnapshotFromProvider(match: {
+  id: string;
+  externalId: string | null;
+  homeTeam: { name: string };
+  awayTeam: { name: string };
+}) {
+  if (!match.externalId) {
+    return null;
+  }
+
+  const freshEvent = await fetchEventById(match.externalId, { noStore: true });
+  const normalized = freshEvent ? normalizeTheSportsDbEvent(freshEvent) : null;
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (
+    !matchesNormalizedName(match.homeTeam.name, normalized.homeTeam.name) ||
+    !matchesNormalizedName(match.awayTeam.name, normalized.awayTeam.name)
+  ) {
+    return null;
+  }
+
+  await prisma.match.update({
+    where: { id: match.id },
+    data: {
+      homeScore: normalized.homeScore,
+      awayScore: normalized.awayScore,
+      matchDate: normalized.matchDate,
+      status: normalized.status,
+      lastSyncedAt: normalized.lastSyncedAt,
+      ...(normalized.stage ? { stage: normalized.stage } : {}),
+      ...(normalized.stadium ? { stadiumName: normalized.stadium } : {}),
+      ...(normalized.city ? { city: normalized.city } : {}),
+      ...(normalized.country ? { country: normalized.country } : {}),
+    },
+  });
+
+  return {
+    homeScore: normalized.homeScore,
+    awayScore: normalized.awayScore,
+    matchDate: normalized.matchDate,
+    status: normalized.status,
+  };
 }
 
 export async function getMatchTimeline(matchId: string): Promise<MatchEventItem[]> {
@@ -351,11 +418,14 @@ export async function syncMatchTimeline(matchId: string) {
     };
   }
 
-  const timeline = await fetchEventTimeline(match.externalId);
+  const refreshedSnapshot = await refreshMatchSnapshotFromProvider(match);
+  const effectiveMatch = refreshedSnapshot ? { ...match, ...refreshedSnapshot } : match;
+  const matchExternalId = match.externalId;
+  const timeline = await fetchEventTimeline(matchExternalId);
   const dedupedTimeline = new Map<string, (typeof timeline)[number]>();
 
   for (const rawEvent of timeline) {
-    const externalId = buildStableTimelineExternalId(match.externalId, rawEvent);
+    const externalId = buildStableTimelineExternalId(matchExternalId, rawEvent);
     dedupedTimeline.set(externalId, rawEvent);
   }
 
@@ -366,7 +436,7 @@ export async function syncMatchTimeline(matchId: string) {
   let unlinkedPlayers = 0;
 
   for (const [externalId, rawEvent] of dedupedTimeline) {
-    const resolvedTeam = resolveTeamForEvent(match, rawEvent.teamName, rawEvent.teamExternalId);
+    const resolvedTeam = resolveTeamForEvent(effectiveMatch, rawEvent.teamName, rawEvent.teamExternalId);
     const linkedPlayer = await findOrLinkPlayerByName(rawEvent.playerName, resolvedTeam?.name ?? rawEvent.teamName);
 
     if (rawEvent.eventType === "GOAL") {
@@ -398,7 +468,7 @@ export async function syncMatchTimeline(matchId: string) {
         rawPayload: rawEvent.rawPayload,
       },
       create: {
-        matchId: match.id,
+        matchId: effectiveMatch.id,
         externalId,
         externalProvider: "THESPORTSDB",
         minute: rawEvent.minute ?? null,
@@ -416,43 +486,43 @@ export async function syncMatchTimeline(matchId: string) {
 
   await prisma.matchEvent.deleteMany({
     where: {
-      matchId: match.id,
+      matchId: effectiveMatch.id,
       externalProvider: "THESPORTSDB",
       ...(incomingExternalIds.length ? { externalId: { notIn: incomingExternalIds } } : {}),
     },
   });
 
-  const scorers = await getMatchScorers(match.id);
+  const scorers = await getMatchScorers(effectiveMatch.id);
   const headlineScorer = [...scorers].sort((a, b) => b.goals - a.goals || (a.minutes[0] ?? 999) - (b.minutes[0] ?? 999))[0];
 
   await prisma.match.update({
-    where: { id: match.id },
+    where: { id: effectiveMatch.id },
     data: {
       scorer: headlineScorer?.playerName ?? null,
     },
   });
 
   const predictionsUpdated = await recalculatePredictionsForStoredMatch({
-    id: match.id,
-    homeScore: match.homeScore,
-    awayScore: match.awayScore,
+    id: effectiveMatch.id,
+    homeScore: effectiveMatch.homeScore,
+    awayScore: effectiveMatch.awayScore,
     scorers: scorers.map((scorer) => scorer.playerName),
-    status: match.status,
+    status: effectiveMatch.status,
   });
-  await recalculatePlayerTournamentStats([match.homeTeamId, match.awayTeamId]);
-  const fantasy = await recalculateFantasyForMatch(match.id);
+  await recalculatePlayerTournamentStats([effectiveMatch.homeTeamId, effectiveMatch.awayTeamId]);
+  const fantasy = await recalculateFantasyForMatch(effectiveMatch.id);
 
   await prisma.syncLog.create({
     data: {
       provider: "THESPORTSDB",
       type: "MATCH_TIMELINE",
       status: "SUCCESS",
-      message: `Timeline ${match.homeTeam.name} vs ${match.awayTeam.name}: ${stored} eventos, ${goals} goles, ${redCards} rojas, ${predictionsUpdated} pronosticos recalculados, ${fantasy.created} logs fantasy.`,
+      message: `Timeline ${effectiveMatch.homeTeam.name} vs ${effectiveMatch.awayTeam.name}: ${stored} eventos, ${goals} goles, ${redCards} rojas, ${predictionsUpdated} pronosticos recalculados, ${fantasy.created} logs fantasy.`,
     },
   });
 
   return {
-    matchId: match.id,
+    matchId: effectiveMatch.id,
     fetched: timeline.length,
     stored,
     goals,
@@ -464,24 +534,16 @@ export async function syncMatchTimeline(matchId: string) {
 }
 
 export async function syncRecentMatchTimelines(matchId?: string) {
-  const recentThreshold = new Date(Date.now() - 48 * 60 * 60 * 1000);
   const matches = await prisma.match.findMany({
-    where: matchId
-      ? { id: matchId }
-      : {
-          externalId: { not: null },
-          OR: [
-            { status: "LIVE" },
-            { status: "FINISHED" },
-            { matchDate: { gte: recentThreshold } },
-          ],
-        },
+    where: matchId ? { id: matchId } : { externalId: { not: null } },
     orderBy: { matchDate: "desc" },
   });
+  const referenceDate = new Date();
+  const matchesToSync = matchId ? matches : matches.filter((match) => shouldSyncTimelineForMatch(match, referenceDate));
 
   const results = [];
 
-  for (const match of matches) {
+  for (const match of matchesToSync) {
     results.push(await syncMatchTimeline(match.id));
   }
 

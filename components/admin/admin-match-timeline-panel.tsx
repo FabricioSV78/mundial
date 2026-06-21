@@ -26,12 +26,13 @@ export function AdminMatchTimelinePanel({
     id: string;
     label: string;
     status: string;
+    matchDate: string;
     lastSyncedAt?: string;
   }>;
 }) {
   const [state, setState] = useState<TimelineSyncState>({
     status: "idle",
-    message: "Sincroniza eventos de partidos live/finalizados o entra al detalle para corregir manualmente.",
+    message: "Sincroniza eventos de partidos ya jugados o entra al detalle para corregir manualmente.",
   });
 
   async function syncTimeline(matchId?: string) {
@@ -44,7 +45,7 @@ export function AdminMatchTimelinePanel({
 
     setState({
       status: "loading",
-      message: matchId ? "Sincronizando timeline del partido..." : "Sincronizando timelines recientes...",
+      message: matchId ? "Sincronizando timeline del partido..." : "Sincronizando timelines de partidos jugados...",
     });
 
     try {
@@ -70,6 +71,10 @@ export function AdminMatchTimelinePanel({
     }
   }
 
+  const featuredMatches = [...matches]
+    .sort((left, right) => new Date(right.matchDate).getTime() - new Date(left.matchDate).getTime())
+    .slice(0, 8);
+
   return (
     <GlassCard className="border-sky-300/20 bg-sky-400/10">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -87,7 +92,7 @@ export function AdminMatchTimelinePanel({
       </div>
 
       <div className="mt-5 grid gap-3">
-        {matches.slice(0, 8).map((match) => (
+        {featuredMatches.map((match) => (
           <div
             key={match.id}
             className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-white/10 bg-slate-950/28 p-3"

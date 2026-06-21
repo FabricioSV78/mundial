@@ -42,6 +42,7 @@ export default async function AdminPage() {
                 id: match.id,
                 label: `${match.homeTeam.code} vs ${match.awayTeam.code}`,
                 status: match.status,
+                matchDate: match.matchDate ?? match.date,
                 lastSyncedAt: match.lastSyncedAt,
               }))}
             />
